@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import http from 'http';
 import { ModuleContext } from '../module/ModuleContext';
 import { AuthPayload } from './AuthManager';
+import { HttpRateLimiter } from './HttpRateLimiter';
 import colors from 'colors/safe';
 
 export class HttpServer {
@@ -11,17 +12,22 @@ export class HttpServer {
     private context: ModuleContext;
     private port: number;
     private server: http.Server | null = null;
+    private rateLimiter: HttpRateLimiter;
 
     constructor(context: ModuleContext, port: number = 3001) {
         this.context = context;
         this.port = port;
         this.app = express();
+        this.rateLimiter = new HttpRateLimiter();
 
         // Expose HTTP server globally for modules (e.g., wyrt_oauth)
         (globalThis as any).httpServer = this.app;
 
         this.setupMiddleware();
         this.setupRoutes();
+
+        // Clean up rate limiter buckets periodically (every 5 minutes)
+        setInterval(() => this.rateLimiter.cleanup(), 300000);
     }
 
     private setupMiddleware(): void {
@@ -57,6 +63,14 @@ export class HttpServer {
             this.context.logger.debug(`HTTP ${req.method} ${req.path}`);
             next();
         });
+
+        // Rate limiting - apply different limits based on route
+        // Strict limit for auth endpoints (brute force protection)
+        this.app.use('/api/auth', this.rateLimiter.middleware('auth'));
+        // Normal limit for API endpoints
+        this.app.use('/api', this.rateLimiter.middleware('api'));
+        // Lenient limit for everything else
+        this.app.use(this.rateLimiter.middleware('default'));
     }
 
     private setupRoutes(): void {
