@@ -159,6 +159,13 @@ export default class WyrtOAuthModule implements IModule {
         return this.configured;
     }
 
+    /**
+     * Set a custom Prisma client (for game modules with their own database)
+     */
+    setPrisma(prisma: any): void {
+        this.oauthManager.setPrisma(prisma);
+    }
+
     async activate(): Promise<void> {
         // Get database from wyrt_data module
         const wyrtData = this.context.getModule('wyrt_data') as any;
