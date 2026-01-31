@@ -101,6 +101,7 @@ export default class WyrtOAuthModule implements IModule {
     private oauthManager!: OAuthManager;
     private config!: OAuthConfig;
     private configured: boolean = false;
+    private customPrismaSet: boolean = false;
 
     async initialize(context: ModuleContext): Promise<void> {
         this.context = context;
@@ -161,19 +162,23 @@ export default class WyrtOAuthModule implements IModule {
 
     /**
      * Set a custom Prisma client (for game modules with their own database)
+     * Call this before activate() to prevent wyrt_data from overwriting it.
      */
     setPrisma(prisma: any): void {
         this.oauthManager.setPrisma(prisma);
+        this.customPrismaSet = true;
     }
 
     async activate(): Promise<void> {
-        // Get database from wyrt_data module
-        const wyrtData = this.context.getModule('wyrt_data') as any;
-        if (wyrtData && typeof wyrtData.getDatabase === 'function') {
-            const prisma = wyrtData.getDatabase();
-            this.oauthManager.setPrisma(prisma);
-        } else {
-            console.warn('[wyrt_oauth] wyrt_data module not available - OAuth account creation will fail');
+        // Only use wyrt_data's Prisma if no custom Prisma was set by a game module
+        if (!this.customPrismaSet) {
+            const wyrtData = this.context.getModule('wyrt_data') as any;
+            if (wyrtData && typeof wyrtData.getDatabase === 'function') {
+                const prisma = wyrtData.getDatabase();
+                this.oauthManager.setPrisma(prisma);
+            } else {
+                console.warn('[wyrt_oauth] wyrt_data module not available - OAuth account creation will fail');
+            }
         }
 
         // Register HTTP routes
