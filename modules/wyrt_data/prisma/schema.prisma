@@ -16,7 +16,8 @@
 // =============================================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -1233,6 +1234,9 @@ model DungeonLockout {
   // What was cleared
   clearedAt   DateTime @default(now())
   bossesKilled Json    @default("[]")
+
+  // Saved instance state (cleared rooms, killed enemies, etc.)
+  instanceData Json    @default("{}")
 
   @@unique([gameId, characterId, dungeonSlug])
   @@index([resetsAt])
