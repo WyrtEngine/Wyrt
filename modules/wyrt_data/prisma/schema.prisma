@@ -789,10 +789,10 @@ model Character {
   buffs       CharacterBuff[]
   achievements CharacterAchievement[]
 
-  @@unique([gameId, userId])
   @@unique([gameId, name])
   @@index([gameId])
   @@index([userId])
+  @@index([gameId, userId])
 }
 
 /// Inventory items owned by a character
