@@ -371,6 +371,144 @@ export class HttpServer {
             }
         });
 
+        // Character management endpoints
+        // GET /api/games/:gameId/characters - List characters for authenticated user
+        this.app.get('/api/games/:gameId/characters', async (req: Request, res: Response) => {
+            try {
+                const { gameId } = req.params;
+                const authHeader = req.headers.authorization;
+
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                    return res.status(401).json({ success: false, message: 'No token provided' });
+                }
+
+                const token = authHeader.substring(7);
+                const payload = this.context.authManager.verifyToken(token);
+                if (!payload) {
+                    return res.status(401).json({ success: false, message: 'Invalid token' });
+                }
+
+                const userId = payload.userId.toString();
+
+                // Find all characters for this user in this game
+                const characters = await this.context.prisma.character.findMany({
+                    where: {
+                        gameId,
+                        userId,
+                    },
+                    orderBy: { createdAt: 'desc' },
+                });
+
+                res.json({ success: true, characters });
+            } catch (error) {
+                this.context.logger.error('Failed to list characters:', error);
+                res.status(500).json({ success: false, message: 'Failed to list characters' });
+            }
+        });
+
+        // POST /api/games/:gameId/characters - Create a new character
+        this.app.post('/api/games/:gameId/characters', async (req: Request, res: Response) => {
+            try {
+                const { gameId } = req.params;
+                const { name, classId, race } = req.body;
+                const authHeader = req.headers.authorization;
+
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                    return res.status(401).json({ success: false, message: 'No token provided' });
+                }
+
+                const token = authHeader.substring(7);
+                const payload = this.context.authManager.verifyToken(token);
+                if (!payload) {
+                    return res.status(401).json({ success: false, message: 'Invalid token' });
+                }
+
+                if (!name || !classId) {
+                    return res.status(400).json({ success: false, message: 'Name and classId required' });
+                }
+
+                const userId = payload.userId.toString();
+
+                // Check character limit (3 per user per game)
+                const existingCount = await this.context.prisma.character.count({
+                    where: { gameId, userId },
+                });
+                if (existingCount >= 3) {
+                    return res.status(400).json({ success: false, message: 'Character limit reached (3)' });
+                }
+
+                // Check name uniqueness within game
+                const existingName = await this.context.prisma.character.findFirst({
+                    where: { gameId, name },
+                });
+                if (existingName) {
+                    return res.status(400).json({ success: false, message: 'Character name already taken' });
+                }
+
+                // Create character - store race in stats if provided
+                const character = await this.context.prisma.character.create({
+                    data: {
+                        gameId,
+                        userId,
+                        name,
+                        archetypeSlug: classId,
+                        level: 1,
+                        experience: 0,
+                        locationSlug: 'spawn',  // Default starting zone
+                        stats: race ? { race } : {},
+                        currency: { gold: 0 },
+                        combatState: {},
+                        unlocks: {},
+                        reputation: {},
+                        titles: {},
+                        settings: {},
+                    },
+                });
+
+                this.context.logger.info(colors.green(`Character created: ${name} (${classId}) for user ${userId}`));
+                res.json({ success: true, character });
+            } catch (error) {
+                this.context.logger.error('Failed to create character:', error);
+                res.status(500).json({ success: false, message: 'Failed to create character' });
+            }
+        });
+
+        // DELETE /api/games/:gameId/characters/:characterId - Delete a character
+        this.app.delete('/api/games/:gameId/characters/:characterId', async (req: Request, res: Response) => {
+            try {
+                const { gameId, characterId } = req.params;
+                const authHeader = req.headers.authorization;
+
+                if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                    return res.status(401).json({ success: false, message: 'No token provided' });
+                }
+
+                const token = authHeader.substring(7);
+                const payload = this.context.authManager.verifyToken(token);
+                if (!payload) {
+                    return res.status(401).json({ success: false, message: 'Invalid token' });
+                }
+
+                const userId = payload.userId.toString();
+
+                // Verify ownership
+                const character = await this.context.prisma.character.findFirst({
+                    where: { id: characterId, gameId, userId },
+                });
+                if (!character) {
+                    return res.status(404).json({ success: false, message: 'Character not found' });
+                }
+
+                await this.context.prisma.character.delete({ where: { id: characterId } });
+
+                this.context.logger.info(colors.yellow(`Character deleted: ${character.name} for user ${userId}`));
+                res.json({ success: true });
+            } catch (error) {
+                this.context.logger.error('Failed to delete character:', error);
+                res.status(500).json({ success: false, message: 'Failed to delete character' });
+            }
+        });
+
         // Note: 404 handler is registered separately via registerFallbackRoutes()
         // after all modules have had a chance to register their routes
     }
