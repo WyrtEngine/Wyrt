@@ -14,7 +14,7 @@
  *   sync:snap { players: [{ id, s }] }   sync:event { id, n, d }
  */
 
-import { IModule, ModuleContext } from '../../src/module/IModule';
+import { IModule, ModuleContext } from '../../../src/module/IModule';
 import { leave, stats, tick, TICK_MS } from './rooms';
 
 export default class WyrtSyncModule implements IModule {

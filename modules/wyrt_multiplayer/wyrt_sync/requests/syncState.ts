@@ -1,4 +1,4 @@
-import { Request } from '../../../src/types/Request';
+import { Request } from '../../../../src/types/Request';
 import { cleanState, update } from '../rooms';
 
 const handler: Request = {

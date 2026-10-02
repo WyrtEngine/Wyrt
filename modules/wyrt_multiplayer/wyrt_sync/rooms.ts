@@ -8,7 +8,7 @@
  * late joiners find them where they were left.
  */
 
-import { User } from '../../src/types/User';
+import { User } from '../../../src/types/User';
 
 export const TICK_MS = 1000 / 15;
 const MAX_PLAYERS = 24;

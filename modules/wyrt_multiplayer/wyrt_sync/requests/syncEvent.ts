@@ -1,4 +1,4 @@
-import { Request } from '../../../src/types/Request';
+import { Request } from '../../../../src/types/Request';
 import { relay } from '../rooms';
 
 const handler: Request = {
