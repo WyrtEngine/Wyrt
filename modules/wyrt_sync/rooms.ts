@@ -22,6 +22,7 @@ export interface PlayerState {
   f: number;            // facing
   vx: number; vy: number;
   hp?: number;
+  t?: number;           // tint
   r?: { k: string; x: number; y: number; z: number; f: number; m: boolean } | null; // riding: shared object key and its state
 }
 
@@ -44,10 +45,11 @@ export function cleanName(raw: unknown, id: number): string {
 /** A state from the wire, or null when anything is off */
 export function cleanState(raw: any): PlayerState | null {
   if (!raw || typeof raw !== 'object') return null;
-  const { a, x, y, z, f, vx, vy, hp, r } = raw;
+  const { a, x, y, z, f, vx, vy, hp, t, r } = raw;
   if (!str(a, 32) || !num(x) || !num(y) || !num(z, 1e3) || !num(f, 100) || !num(vx, 1e4) || !num(vy, 1e4)) return null;
   const s: PlayerState = { a, x, y, z, f, vx, vy };
   if (num(hp, 1e6)) s.hp = hp;
+  if (num(t, 0xffffff) && t >= 0) s.t = Math.floor(t);
   if (r && typeof r === 'object') {
     if (!str(r.k, 64) || !num(r.x) || !num(r.y) || !num(r.z, 1e3) || !num(r.f, 100)) return null;
     s.r = { k: r.k, x: r.x, y: r.y, z: r.z, f: r.f, m: !!r.m };

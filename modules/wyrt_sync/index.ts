@@ -6,7 +6,7 @@
  *
  * Client to server (gameId not needed, the handlers are global):
  *   { type: 'syncJoin',  room, name }
- *   { type: 'syncState', s: { a, x, y, z, f, vx, vy, hp?, r? } }   ~15 a second
+ *   { type: 'syncState', s: { a, x, y, z, f, vx, vy, hp?, t?, r? } }   ~15 a second
  *   { type: 'syncEvent', n, d? }
  * Server to client:
  *   sync:welcome { id, name, players: [{ id, name, s }], objects: [{ k, a, x, y, f }] }
