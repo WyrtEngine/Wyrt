@@ -1,0 +1,8 @@
+{
+  "name": "wyrt_sync",
+  "version": "1.0.0",
+  "description": "Room-based state sync for browser games (the server half of Glyft's network rule)",
+  "type": "module",
+  "main": "index.ts",
+  "license": "GPL-3.0"
+}
